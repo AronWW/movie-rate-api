@@ -1,0 +1,73 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  username  String   @unique
+  password  String
+
+  firstName String?
+  lastName  String?
+  avatar    String?
+
+  reviews   Review[]
+  ratings   Rating[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Movie {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String
+  genre       String
+  releaseYear Int
+  director    String
+  posterUrl   String?
+  duration    Int
+
+  reviews     Review[]
+  ratings     Rating[]
+
+  createdAt   DateTime @default(now())
+}
+
+model Review {
+  id        Int      @id @default(autoincrement())
+  title     String
+  content   String
+
+  userId    Int
+  movieId   Int
+
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  movie     Movie  @relation(fields: [movieId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([movieId])
+}
+
+model Rating {
+  id        Int      @id @default(autoincrement())
+  score     Int
+
+  userId    Int
+  movieId   Int
+
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  movie     Movie  @relation(fields: [movieId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, movieId])
+  @@index([movieId])
+}
