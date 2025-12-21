@@ -112,6 +112,24 @@ export class ReviewsService {
     return review;
   }
 
+  async findMyReviews(userId: number) {
+  return this.prisma.review.findMany({
+    where: { userId },
+    include: {
+      movie: {
+        select: {
+          id: true,
+          title: true,
+          posterUrl: true,
+        },
+      },
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+  });
+}
+
   async update(id: number, userId: number, dto: UpdateReviewDto) {
     const review = await this.prisma.review.findUnique({
       where: { id },

@@ -25,6 +25,12 @@ export class RatingsController {
     return this.ratingsService.create(user.id, dto);
   }
 
+  @Get('my')
+  @UseGuards(JwtAuthGuard)
+  findMyRatings(@CurrentUser() user: any) {
+    return this.ratingsService.findMyRatings(user.id);
+  }
+
   @Get('movie/:movieId/average')
   getAverageRating(@Param('movieId', ParseIntPipe) movieId: number) {
     return this.ratingsService.getAverageRating(movieId);

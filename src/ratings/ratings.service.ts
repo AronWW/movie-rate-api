@@ -196,4 +196,22 @@ export class RatingsService {
       },
     });
   }
+
+  async findMyRatings(userId: number) {
+  return this.prisma.rating.findMany({
+    where: { userId },
+    include: {
+      movie: {
+        select: {
+          id: true,
+          title: true,
+          posterUrl: true,
+        },
+      },
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+  });
+}
 }

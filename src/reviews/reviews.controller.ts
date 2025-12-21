@@ -25,6 +25,12 @@ export class ReviewsController {
     return this.reviewsService.create(user.id, dto);
   }
 
+  @Get('my')
+  @UseGuards(JwtAuthGuard)
+  findMyReviews(@CurrentUser() user: any) {
+    return this.reviewsService.findMyReviews(user.id);
+  }
+
   @Get('movie/:movieId')
   findAllByMovie(@Param('movieId', ParseIntPipe) movieId: number) {
     return this.reviewsService.findAllByMovie(movieId);
