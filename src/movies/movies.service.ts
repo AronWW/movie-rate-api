@@ -35,12 +35,46 @@ export class MoviesService {
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
+        include: {
+          ratings: {
+            select: {
+              score: true,
+            },
+          },
+          reviews: {
+            select: {
+              id: true,
+            },
+          },
+        },
       }),
       this.prisma.movie.count({ where }),
     ]);
 
+    const moviesWithRatings = movies.map((movie) => {
+      const totalRatings = movie.ratings.length;
+      const averageRating =
+        totalRatings > 0
+          ? Number(
+              (
+                movie.ratings.reduce((sum, r) => sum + r.score, 0) /
+                totalRatings
+              ).toFixed(1),
+            )
+          : 0;
+
+      const { ratings, reviews, ...movieData } = movie;
+
+      return {
+        ...movieData,
+        averageRating,
+        ratingsCount: totalRatings,
+        reviewsCount: reviews.length,
+      };
+    });
+
     return {
-      data: movies,
+      data: moviesWithRatings,
       meta: {
         total,
         page,
@@ -53,17 +87,56 @@ export class MoviesService {
   async findOne(id: number) {
     const movie = await this.prisma.movie.findUnique({
       where: { id },
+      include: {
+        ratings: {
+          select: {
+            score: true,
+          },
+        },
+        reviews: {
+          take: 5,
+          orderBy: {
+            createdAt: 'desc',
+          },
+          include: {
+            user: {
+              select: {
+                id: true,
+                username: true,
+                avatar: true,
+              },
+            },
+          },
+        },
+      },
     });
 
     if (!movie) {
       throw new NotFoundException('Movie not found');
     }
 
-    return movie;
+    const totalRatings = movie.ratings.length;
+    const averageRating =
+      totalRatings > 0
+        ? Number(
+            (
+              movie.ratings.reduce((sum, r) => sum + r.score, 0) / totalRatings
+            ).toFixed(1),
+          )
+        : 0;
+
+    const { ratings, ...movieData } = movie;
+
+    return {
+      ...movieData,
+      averageRating,
+      ratingsCount: totalRatings,
+      reviewsCount: movie.reviews.length,
+    };
   }
 
   async update(id: number, dto: UpdateMovieDto) {
-    await this.findOne(id); // Перевірка існування
+    await this.findOne(id); 
 
     return this.prisma.movie.update({
       where: { id },
@@ -72,7 +145,7 @@ export class MoviesService {
   }
 
   async remove(id: number) {
-    await this.findOne(id); // Перевірка існування
+    await this.findOne(id); 
 
     return this.prisma.movie.delete({
       where: { id },
