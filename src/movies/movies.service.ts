@@ -14,76 +14,78 @@ export class MoviesService {
     });
   }
 
-  async findAll(pagination: PaginationDto) {
-    const { page = 1, limit = 10, search } = pagination;
-    const skip = (page - 1) * limit;
+async findAll(pagination: PaginationDto) {
+  const { page = 1, limit = 10, search } = pagination;
 
-    const where = search
-      ? {
-          OR: [
-            { title: { contains: search, mode: 'insensitive' as const } },
-            { description: { contains: search, mode: 'insensitive' as const } },
-            { director: { contains: search, mode: 'insensitive' as const } },
-            { genre: { contains: search, mode: 'insensitive' as const } },
-          ],
-        }
-      : {};
+  const pageNum = Number(page);
+  const limitNum = Number(limit);
+  const skip = (pageNum - 1) * limitNum;
 
-    const [movies, total] = await Promise.all([
-      this.prisma.movie.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          ratings: {
-            select: {
-              score: true,
-            },
-          },
-          reviews: {
-            select: {
-              id: true,
-            },
+  const where = search
+    ? {
+        OR: [
+          { title: { contains: search, mode: 'insensitive' as const } },
+          { description: { contains: search, mode: 'insensitive' as const } },
+          { director: { contains: search, mode: 'insensitive' as const } },
+          { genre: { contains: search, mode: 'insensitive' as const } },
+        ],
+      }
+    : {};
+
+  const [movies, total] = await Promise.all([
+    this.prisma.movie.findMany({
+      where,
+      skip,
+      take: limitNum, 
+      orderBy: { createdAt: 'desc' },
+      include: {
+        ratings: {
+          select: {
+            score: true,
           },
         },
-      }),
-      this.prisma.movie.count({ where }),
-    ]);
+        reviews: {
+          select: {
+            id: true,
+          },
+        },
+      },
+    }),
+    this.prisma.movie.count({ where }),
+  ]);
 
-    const moviesWithRatings = movies.map((movie) => {
-      const totalRatings = movie.ratings.length;
-      const averageRating =
-        totalRatings > 0
-          ? Number(
-              (
-                movie.ratings.reduce((sum, r) => sum + r.score, 0) /
-                totalRatings
-              ).toFixed(1),
-            )
-          : 0;
+  const moviesWithRatings = movies.map((movie) => {
+    const totalRatings = movie.ratings.length;
+    const averageRating =
+      totalRatings > 0
+        ? Number(
+            (
+              movie.ratings.reduce((sum, r) => sum + r.score, 0) /
+              totalRatings
+            ).toFixed(1),
+          )
+        : 0;
 
-      const { ratings, reviews, ...movieData } = movie;
-
-      return {
-        ...movieData,
-        averageRating,
-        ratingsCount: totalRatings,
-        reviewsCount: reviews.length,
-      };
-    });
+    const { ratings, reviews, ...movieData } = movie;
 
     return {
-      data: moviesWithRatings,
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
+      ...movieData,
+      averageRating,
+      ratingsCount: totalRatings,
+      reviewsCount: reviews.length,
     };
-  }
+  });
 
+  return {
+    data: moviesWithRatings,
+    meta: {
+      total,
+      page: pageNum, 
+      limit: limitNum, 
+      totalPages: Math.ceil(total / limitNum), 
+    },
+  };
+}
   async findOne(id: number) {
     const movie = await this.prisma.movie.findUnique({
       where: { id },
